@@ -1,0 +1,47 @@
+# Full local stack: the service + PostgreSQL + a deliberately flaky mock upstream.
+#   docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: orch
+      POSTGRES_PASSWORD: orch
+      POSTGRES_DB: orchestrator
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orch -d orchestrator"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mock-external:
+    image: python:3.12-slim
+    command: python /app/server.py
+    environment:
+      MOCK_HOST: 0.0.0.0
+      MOCK_PORT: "9000"
+    volumes:
+      - ./mock_external/server.py:/app/server.py:ro
+    ports:
+      - "9000:9000"
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      mock-external:
+        condition: service_started
+    environment:
+      ORCH_ENVIRONMENT: docker
+      ORCH_DATABASE_URL: postgresql+asyncpg://orch:orch@db:5432/orchestrator
+      ORCH_EXTERNAL_API_BASE_URL: http://mock-external:9000
+      # Uncomment to require an API key:
+      # ORCH_AUTH_MODE: api_key
+      # ORCH_API_KEYS: change-me
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

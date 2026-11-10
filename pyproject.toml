@@ -1,0 +1,18 @@
+[project]
+name = "resilient-orchestrator"
+version = "1.0.0"
+description = "FastAPI microservice that orchestrates external API calls with retries, circuit breaking, persistence and observability."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC"]
+ignore = ["B008"]  # FastAPI's Depends()/Query() in argument defaults is the intended style
